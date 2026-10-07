@@ -136,7 +136,7 @@ void ItemManager::OnUpdate()
             if (item->timer < 60)
             {
                 itemTimerSecs = item->timer.AsFloat() / 60.0f;
-                item->pos = itemTimerSecs * item->targetPos +
+                item->pos = item->targetPos * itemTimerSecs +
                             item->velocity *
                                 (1.0f - itemTimerSecs);
                 goto check_collision;

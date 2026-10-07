@@ -256,8 +256,10 @@ i32 EclManager::GetVarValue(Enemy *enemy, i32 eclVar)
         return enemy->score;
     case ECL_VAR_ANGLE_TO_PLAYER:
         return g_Player.AngleToPlayer(&enemy->pos);
-    case ECL_VAR_DISTANCE_FROM_PLAYER:
-        return D3DXVec3Length((g_Player.pos - enemy->pos).asD3DX());
+    case ECL_VAR_DISTANCE_FROM_PLAYER: {
+        Float3 distance = g_Player.pos - enemy->pos;
+        return D3DXVec3Length((D3DXVECTOR3 *)&distance);
+    }
     default:
         return eclVar;
     }
@@ -474,8 +476,10 @@ f32 EclManager::GetFloatVarValue(Enemy *enemy, f32 eclVar)
         return (f32)enemy->bossId;
     case ECL_VAR_LAST_DAMAGE:
         return (f32)enemy->lastDamage;
-    case ECL_VAR_DISTANCE_FROM_PLAYER:
-        return D3DXVec3Length((g_Player.pos - enemy->pos).asD3DX());
+    case ECL_VAR_DISTANCE_FROM_PLAYER: {
+        Float3 distance = g_Player.pos - enemy->pos;
+        return D3DXVec3Length((D3DXVECTOR3 *)&distance);
+    }
     default:
         return eclVar;
     }
@@ -1530,7 +1534,7 @@ restart:
                 effectInstrArgs = instr->args;
                 enemy->effects[enemy->effectsNum] = g_EffectManager.SpawnEffect(
                     13, &enemy->pos, 1, g_BulletColor[effectInstrArgs->i]);
-                enemy->effects[enemy->effectsNum]->direction = *(Float3 *)&effectInstrArgs[1];
+                enemy->effects[enemy->effectsNum]->direction = *(D3DXVECTOR3 *)&effectInstrArgs[1];
                 enemy->effectDistance = effectInstrArgs[4].f;
                 enemy->effectsNum++;
                 break;
@@ -2075,7 +2079,7 @@ restart:
                 }
                 }
                 enemy->velocity =
-                    t1 * enemy->moveInterp + enemy->moveInterpStartPos -
+                    enemy->moveInterp * t1 + enemy->moveInterpStartPos -
                     enemy->pos;
                 if (enemy->mirror)
                 {

@@ -117,7 +117,7 @@ i32 EffectManager::InitDeceleratingBurstFast(Effect *effect)
 // FUNCTION: TH07 0x0041a4f0
 i32 EffectManager::UpdatePhysics(Effect *effect)
 {
-    effect->pos += effect->velocity;
+    effect->pos += *(Float3 *)&effect->velocity;
     effect->velocity += effect->accel;
     return 1;
 }
@@ -148,13 +148,13 @@ i32 EffectManager::Init2dEffect(Effect *effect)
 i32 EffectManager::UpdateOrbitEffect(Effect *effect)
 {
     f32 fadeOutRatio;
-    Float3 orbitAxis;
+    D3DXVECTOR3 orbitAxis;
     f32 cosAngle;
     D3DXMATRIX rot;
     f32 sinAngle;
-    Float3 orbitOffset;
+    D3DXVECTOR3 orbitOffset;
 
-    D3DXVec3Normalize(orbitAxis.asD3DX(), effect->direction.asD3DX());
+    D3DXVec3Normalize(&orbitAxis, &effect->direction);
     sinAngle = sinf(effect->angleVel);
     cosAngle = cosf(effect->angleVel);
 
@@ -169,20 +169,20 @@ i32 EffectManager::UpdateOrbitEffect(Effect *effect)
     orbitOffset.y = orbitAxis.z * 0.0f - orbitAxis.x * 1.0f;
     orbitOffset.z = orbitAxis.x * 0.0f - orbitAxis.y * 0.0f;
 
-    if (D3DXVec3LengthSq(orbitOffset.asD3DX()) < 0.00001f)
+    if (D3DXVec3LengthSq(&orbitOffset) < 0.00001f)
     {
-        orbitAxis = Float3(1.0f, 0.0f, 0.0f);
+        orbitAxis = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
     }
     else
     {
-        D3DXVec3Normalize(orbitOffset.asD3DX(), orbitOffset.asD3DX());
+        D3DXVec3Normalize(&orbitOffset, &orbitOffset);
     }
 
     orbitOffset *= effect->radius;
-    D3DXVec3TransformCoord(orbitOffset.asD3DX(), orbitOffset.asD3DX(), &rot);
+    D3DXVec3TransformCoord(&orbitOffset, &orbitOffset, &rot);
     orbitOffset.z *= 6.0f;
 
-    effect->pos = orbitOffset + effect->emitterPos;
+    effect->pos = *(Float3 *)&orbitOffset + effect->emitterPos;
 
     if ((char)effect->isFadingOut)
     {
@@ -218,7 +218,7 @@ i32 EffectManager::InitRandomDir(Effect *effect)
 i32 EffectManager::UpdateGather60Frames(Effect *effect)
 {
     f32 distance = 256.0f - effect->timer.AsFloat() * 256.0f / 60.0f;
-    effect->pos = effect->direction * distance + effect->emitterPos;
+    effect->pos = *(Float3 *)&effect->direction * distance + effect->emitterPos;
     effect->pos.z = 0.0f;
     return 1;
 }
@@ -239,7 +239,7 @@ i32 EffectManager::UpdateAttachToPlayer(Effect *effect)
 i32 EffectManager::UpdateGather240Frames(Effect *effect)
 {
     f32 distance = 256.0f - effect->timer.AsFloat() * 256.0f / 240.0f;
-    effect->pos = effect->direction * distance + effect->emitterPos;
+    effect->pos = *(Float3 *)&effect->direction * distance + effect->emitterPos;
     return 1;
 }
 
@@ -247,13 +247,13 @@ i32 EffectManager::UpdateGather240Frames(Effect *effect)
 i32 EffectManager::UpdateBurst30Frames(Effect *effect)
 {
     f32 distance = effect->timer.AsFloat() * 256.0f / 30.0f;
-    effect->pos = effect->direction * distance + effect->emitterPos;
+    effect->pos = *(Float3 *)&effect->direction * distance + effect->emitterPos;
     return 1;
 }
 
 #pragma var_order(effect, i)
 // FUNCTION: TH07 0x0041adf0
-void EffectManager::ShiftEffectsAfterCameraTeleport(Float3 *shift)
+void EffectManager::ShiftEffectsAfterCameraTeleport(D3DXVECTOR3 *shift)
 {
     i32 i;
     Effect *effect;
@@ -289,15 +289,15 @@ void EffectManager::ModifyEffect1eAcceleration()
 // FUNCTION: TH07 0x0041aef0
 i32 EffectManager::UpdateWeatherPhysics(Effect *effect)
 {
-    Float3 effectDir;
+    D3DXVECTOR3 effectDir;
 
     effect->velocity += effect->accel;
     effect->basePos += effect->velocity;
-    effect->pos = effect->basePos;
+    effect->pos = *(Float3 *)&effect->basePos;
 
-    effectDir = effect->pos - g_Stage.cam.pos;
-    D3DXVec3Normalize(effectDir.asD3DX(), effectDir.asD3DX());
-    f32 dot = D3DXVec3Dot(g_Stage.cam.lookAtDir.asD3DX(), effectDir.asD3DX());
+    effectDir = *(D3DXVECTOR3 *)&effect->pos - g_Stage.cam.pos;
+    D3DXVec3Normalize(&effectDir, &effectDir);
+    f32 dot = D3DXVec3Dot(&g_Stage.cam.lookAtDir, &effectDir);
     if (dot < 0.94f)
     {
         return 0;
@@ -320,7 +320,7 @@ i32 EffectManager::UpdateWeatherPhysics(Effect *effect)
 i32 EffectManager::InitWeatherForward(Effect *effect)
 {
     i32 chance;
-    Float3 camLookAtInv;
+    D3DXVECTOR3 camLookAtInv;
 
     camLookAtInv = -g_Stage.cam.lookAt;
 
@@ -494,7 +494,7 @@ i32 EffectManager::UpdateBurstEaseOut30Frames(Effect *effect)
 
     t = effect->timer.AsFloat() / 90.0f;
     t = 1.0f - (1.0f - t) * (1.0f - t);
-    effect->pos = t * effect->direction * 128.0f + effect->emitterPos;
+    effect->pos = *(Float3 *)&effect->direction * t * 128.0f + effect->emitterPos;
     effect->pos.z = 0.0f;
     return 1;
 }
@@ -504,7 +504,7 @@ i32 EffectManager::UpdateAttachToCamera(Effect *effect)
 {
     effect->drawType = 1;
     effect->basePos = g_Stage.cam.lookAt + g_Stage.cam.pos;
-    effect->pos = effect->basePos;
+    effect->pos = *(Float3 *)&effect->basePos;
     effect->pos.z = 0.0f;
     effect->drawType = 3;
     return 1;

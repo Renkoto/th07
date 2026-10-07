@@ -617,7 +617,7 @@ void BulletManager::RemoveBulletsInRadius(Float3 *centerPos, f32 radius)
 
         diff = bullet->pos - *centerPos;
 
-        if (D3DXVec3LengthSq(diff.asD3DX()) > radius)
+        if (D3DXVec3LengthSq((D3DXVECTOR3 *)&diff) > radius)
         {
             continue;
         }

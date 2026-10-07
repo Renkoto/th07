@@ -133,7 +133,7 @@ C_ASSERT(sizeof(VertexDiffuseXyzrhw) == 0x14);
 
 struct VertexTex1DiffuseXyz
 {
-    Float3 pos;
+    D3DXVECTOR3 pos;
     ZunColor diffuse;
     Float2 textureUV;
 };
@@ -161,7 +161,7 @@ extern VertexTex1DiffuseXyzrhw g_QuadVertices[4];
 
 struct RenderVertexInfo
 {
-    Float3 pos;
+    D3DXVECTOR3 pos;
     Float2 textureUV;
 };
 C_ASSERT(sizeof(RenderVertexInfo) == 0x14);

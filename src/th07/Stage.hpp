@@ -84,7 +84,7 @@ struct StdRawQuadBasic
     i16 byteSize;
     i16 anmScript;
     i16 vmIndex;
-    Float3 pos;
+    D3DXVECTOR3 pos;
     Float2 size;
 };
 
@@ -93,8 +93,8 @@ struct StdRawObject
     u16 id;
     i8 zLevel;
     i8 flags;
-    Float3 pos;
-    Float3 size;
+    D3DXVECTOR3 pos;
+    D3DXVECTOR3 size;
     StdRawQuadBasic firstQuad;
 };
 
@@ -102,16 +102,16 @@ struct StdRawInstance
 {
     i16 id;
     i16 field1_0x2;
-    Float3 pos;
+    D3DXVECTOR3 pos;
 };
 
 struct StdRawInstrArgs
 {
     AnyArg args[3];
 
-    Float3 *AsVec()
+    D3DXVECTOR3 *AsVec()
     {
-        return (Float3 *)args;
+        return (D3DXVECTOR3 *)args;
     }
 };
 
@@ -131,11 +131,11 @@ struct StageCameraSky
 
 struct StageCamera
 {
-    Float3 pos;
-    Float3 lookAt;
-    Float3 up;
-    Float3 lookAtDir;
-    Float3 right;
+    D3DXVECTOR3 pos;
+    D3DXVECTOR3 lookAt;
+    D3DXVECTOR3 up;
+    D3DXVECTOR3 lookAtDir;
+    D3DXVECTOR3 right;
     f32 fov;
 };
 
@@ -165,9 +165,9 @@ struct Stage
     ZunResult UpdateObjects();
     void SetupCameraStageBackground();
     static void UpdateScriptAndCamera(Stage *stage, i32 camIdx,
-                                      Float3 *output, Float3 *start,
-                                      Float3 *end, Float3 *control1,
-                                      Float3 *control2);
+                                      D3DXVECTOR3 *output, D3DXVECTOR3 *start,
+                                      D3DXVECTOR3 *end, D3DXVECTOR3 *control1,
+                                      D3DXVECTOR3 *control2);
 
     AnmVm *quadVms;
     AnmVm vm1;
@@ -182,7 +182,7 @@ struct Stage
     i32 instructionIndex;
     i32 stageFrameCounter;
     u32 stage;
-    Float3 pos;
+    D3DXVECTOR3 pos;
     D3DCOLOR color;
     StageFog skyFog;
     StageFog fogEnd;
@@ -207,9 +207,9 @@ struct Stage
     i32 timersMax[4];
     ZunTimer timers[4];
     i32 easeModes[4];
-    Float3 positionStart;
+    D3DXVECTOR3 positionStart;
     i32 positionInterpEndTime;
-    Float3 positionInterpInitial;
+    D3DXVECTOR3 positionInterpInitial;
     i32 positionInterpStartTime;
     u8 cameraTeleported;
     // pad 3

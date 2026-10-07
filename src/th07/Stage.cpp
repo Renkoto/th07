@@ -73,9 +73,9 @@ ChainElem g_StageCalcChain;
 Stage::Stage()
 {
     memset(this, NULL, sizeof(Stage));
-    this->cam.pos = Float3(0.0f, 0.0f, 1000.0f);
-    this->cam.lookAt = Float3(0.0f, 0.0f, 0.0f);
-    this->cam.up = Float3(0.0f, 1.0f, 0.0f);
+    this->cam.pos = D3DXVECTOR3(0.0f, 0.0f, 1000.0f);
+    this->cam.lookAt = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+    this->cam.up = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
     this->cam.fov = ZUN_PI / 6.0f;
     this->camEnd = this->cam;
     this->camStart = this->cam;
@@ -95,9 +95,9 @@ f32 InterpCubic(f32 p0, f32 p1, f32 p2, f32 p3, f32 t)
 
 // FUNCTION: TH07 0x00405370
 void Stage::UpdateScriptAndCamera(Stage *stage, i32 camIdx,
-                                  Float3 *output, Float3 *start,
-                                  Float3 *end, Float3 *control1,
-                                  Float3 *control2)
+                                  D3DXVECTOR3 *output, D3DXVECTOR3 *start,
+                                  D3DXVECTOR3 *end, D3DXVECTOR3 *control1,
+                                  D3DXVECTOR3 *control2)
 {
     f32 t;
 
@@ -155,7 +155,7 @@ void Stage::UpdateScriptAndCamera(Stage *stage, i32 camIdx,
 // FUNCTION: TH07 0x00405690
 u32 Stage::OnUpdate(Stage *arg)
 {
-    Float3 pos;
+    D3DXVECTOR3 pos;
     StdRawInstr *curInstr;
 
     if (!arg->stdData)
@@ -226,7 +226,7 @@ loop_begin:
         case STD_CAM_POS:
             if (arg->cameraTeleported)
             {
-                Float3 diff = *curInstr->args.AsVec() - arg->camEnd.pos;
+                D3DXVECTOR3 diff = *curInstr->args.AsVec() - arg->camEnd.pos;
                 EffectManager::ShiftEffectsAfterCameraTeleport(&diff);
                 arg->cameraTeleported = 0;
             }
@@ -441,7 +441,7 @@ LAB_004061aa: {
         arg->cam.fov = fovDiff * t + arg->camStart.fov;
     }
 }
-    D3DXVec3Normalize(arg->cam.lookAtDir.asD3DX(), arg->cam.lookAt.asD3DX());
+    D3DXVec3Normalize(&arg->cam.lookAtDir, &arg->cam.lookAt);
     if (arg->skyFogInterpDuration != 0)
     {
         arg->skyFogInterpTimer++;
@@ -780,9 +780,9 @@ ZunResult Stage::AddedCallback(Stage *arg)
     arg->skyFog.color.color = 0xff000000;
     arg->skyFog.nearPlane = 200.0f;
     arg->skyFog.farPlane = 500.0f;
-    arg->cam.pos = Float3(0.0f, 0.0f, 1000.0f);
-    arg->cam.lookAt = Float3(0.0f, 0.0f, 0.0f);
-    arg->cam.up = Float3(0.0f, 1.0f, 0.0f);
+    arg->cam.pos = D3DXVECTOR3(0.0f, 0.0f, 1000.0f);
+    arg->cam.lookAt = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+    arg->cam.up = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
     arg->cam.fov = ZUN_PI / 6.0f;
     arg->camEnd = arg->cam;
     arg->camStart = arg->cam;
@@ -948,13 +948,13 @@ i32 Stage::RenderObjects(i32 zLevel)
 {
     ZunColor origColor;
     f32 var_98;
-    Float3 projectSrc;
+    D3DXVECTOR3 projectSrc;
     f32 radius;
     ZunBool didDraw;
     StdRawQuadBasic *curQuad;
-    Float3 diffPos;
-    Float3 quadPos;
-    Float3 viewDir;
+    D3DXVECTOR3 diffPos;
+    D3DXVECTOR3 quadPos;
+    D3DXVECTOR3 viewDir;
     f32 dotProd;
     StdRawObject *obj;
     D3DXMATRIX worldMatrix;
@@ -990,136 +990,132 @@ i32 Stage::RenderObjects(i32 zLevel)
 
             quadPos = quadPos - this->cam.pos;
 
-            if (D3DXVec3LengthSq(quadPos.asD3DX()) > 1690000.0f)
+            if (D3DXVec3LengthSq(&quadPos) > 1690000.0f)
             {
-                // empty branch
+                goto skip_instance;
             }
-            else
+
+            dotProd = D3DXVec3Dot(&quadPos, &this->cam.lookAtDir);
+            radius = D3DXVec3Length(&obj->size) / 2.0f + 880.0f;
+
+            if (dotProd > radius || dotProd < 60.0f)
             {
-                dotProd = D3DXVec3Dot(quadPos.asD3DX(), this->cam.lookAtDir.asD3DX());
-                radius = D3DXVec3Length(obj->size.asD3DX()) / 2.0f + 880.0f;
+                goto skip_instance;
+            }
+            obj->flags |= 2;
+            didDraw = TRUE;
 
-                if (dotProd > radius || dotProd < 60.0f)
+            while (curQuad->type >= 0)
+            {
+                curQuadVm = &this->quadVms[curQuad->vmIndex];
+                switch (curQuad->type)
                 {
-                    // empty branch
-                }
-                else
-                {
-                    obj->flags |= 2;
-                    didDraw = TRUE;
+                case 0:
+                    curQuadVm->pos.x = curQuadVm->offset.x + curQuad->pos.x + instance->pos.x - this->pos.x;
+                    curQuadVm->pos.y = curQuadVm->offset.y + curQuad->pos.y + instance->pos.y - this->pos.y;
+                    curQuadVm->pos.z = curQuadVm->offset.z + curQuad->pos.z + instance->pos.z - this->pos.z;
 
-                    while (curQuad->type >= 0)
+                    if (curQuad->size.x != 0.0f)
                     {
-                        curQuadVm = &this->quadVms[curQuad->vmIndex];
-                        switch (curQuad->type)
-                        {
-                        case 0:
-                            curQuadVm->pos.x = curQuadVm->offset.x + curQuad->pos.x + instance->pos.x - this->pos.x;
-                            curQuadVm->pos.y = curQuadVm->offset.y + curQuad->pos.y + instance->pos.y - this->pos.y;
-                            curQuadVm->pos.z = curQuadVm->offset.z + curQuad->pos.z + instance->pos.z - this->pos.z;
-
-                            if (curQuad->size.x != 0.0f)
-                            {
-                                curQuadVm->scale.x = curQuad->size.x / curQuadVm->sprite->widthPx;
-                            }
-                            if (curQuad->size.y != 0.0f)
-                            {
-                                curQuadVm->scale.y = curQuad->size.y / curQuadVm->sprite->heightPx;
-                            }
-
-                            if (curQuadVm->autoRotate == 2)
-                            {
-                                worldMatrix.m[3][0] = curQuadVm->pos.x;
-                                worldMatrix.m[3][1] = curQuadVm->pos.y;
-                                worldMatrix.m[3][2] = curQuadVm->pos.z;
-
-                                D3DXVec3Project(quadPos.asD3DX(), projectSrc.asD3DX(), &g_Supervisor.viewport, &g_Supervisor.projectionMatrix, &g_Supervisor.viewMatrix, &worldMatrix);
-
-                                viewDir.x = g_Supervisor.viewMatrix.m[0][0];
-                                viewDir.y = g_Supervisor.viewMatrix.m[0][1];
-                                viewDir.z = g_Supervisor.viewMatrix.m[0][2];
-                                D3DXVec3Normalize(viewDir.asD3DX(), viewDir.asD3DX());
-
-                                if (curQuad->size.x != 0.0f)
-                                {
-                                    var_98 = curQuad->size.x;
-                                }
-                                else
-                                {
-                                    var_98 = curQuadVm->sprite->widthPx;
-                                }
-
-                                worldMatrix.m[3][0] += viewDir.x * var_98 * curQuadVm->scale.x;
-                                worldMatrix.m[3][1] += viewDir.y * var_98 * curQuadVm->scale.x;
-                                worldMatrix.m[3][2] += viewDir.z * var_98 * curQuadVm->scale.x;
-
-                                D3DXVec3Project(viewDir.asD3DX(), projectSrc.asD3DX(), &g_Supervisor.viewport, &g_Supervisor.projectionMatrix, &g_Supervisor.viewMatrix, &worldMatrix);
-
-                                diffPos = viewDir - quadPos;
-
-                                curQuadVm->scale.x = D3DXVec3Length(diffPos.asD3DX()) / var_98;
-                                curQuadVm->scale.y = curQuadVm->scale.x;
-
-                                diffPos = curQuadVm->pos - this->cam.pos;
-
-                                var_98 = D3DXVec3Length(diffPos.asD3DX());
-                                origColor = curQuadVm->color;
-
-                                if (this->skyFog.nearPlane < var_98)
-                                {
-                                    var_98 = (this->skyFog.nearPlane - var_98) / (this->skyFog.nearPlane - this->skyFog.farPlane);
-                                    if (var_98 >= 1.0f)
-                                    {
-                                        goto skip_draw;
-                                    }
-
-                                    curQuadVm->color.bytes.b = curQuadVm->color.bytes.b - (u8)((curQuadVm->color.bytes.b - this->skyFog.color.bytes.b) * var_98);
-                                    curQuadVm->color.bytes.g = curQuadVm->color.bytes.g - (u8)((curQuadVm->color.bytes.g - this->skyFog.color.bytes.g) * var_98);
-                                    curQuadVm->color.bytes.r = curQuadVm->color.bytes.r - (u8)((curQuadVm->color.bytes.r - this->skyFog.color.bytes.r) * var_98);
-                                    curQuadVm->color.bytes.a = (u8)(curQuadVm->color.bytes.a * (1.0f - var_98));
-                                }
-
-                                curQuadVm->pos = quadPos;
-
-                                if (curQuadVm->pos.z < 0.0f || curQuadVm->pos.z > 1.0f)
-                                {
-                                    // empty branch
-                                }
-                                else
-                                {
-                                    if (fogState != 0)
-                                    {
-                                        if (!g_Supervisor.cfg.disableFog)
-                                        {
-                                            g_Supervisor.DisableFog();
-                                        }
-                                        fogState = 0;
-                                    }
-                                    g_AnmManager->DrawFacingCamera(curQuadVm);
-                                }
-                                curQuadVm->color = origColor;
-                            }
-                            else
-                            {
-                                if (!g_Supervisor.cfg.disableFog && fogState != 1)
-                                {
-                                    if (!g_Supervisor.cfg.disableFog)
-                                    {
-                                        g_Supervisor.EnableFog();
-                                    }
-                                    fogState = 1;
-                                }
-                                g_AnmManager->Draw3(curQuadVm);
-                            }
-                            break;
-                        }
-                    skip_draw:
-                        curQuad = (StdRawQuadBasic *)((u8 *)curQuad + curQuad->byteSize);
+                        curQuadVm->scale.x = curQuad->size.x / curQuadVm->sprite->widthPx;
                     }
-                    instancesDrawn++;
+                    if (curQuad->size.y != 0.0f)
+                    {
+                        curQuadVm->scale.y = curQuad->size.y / curQuadVm->sprite->heightPx;
+                    }
+
+                    if (curQuadVm->autoRotate == 2)
+                    {
+                        worldMatrix.m[3][0] = curQuadVm->pos.x;
+                        worldMatrix.m[3][1] = curQuadVm->pos.y;
+                        worldMatrix.m[3][2] = curQuadVm->pos.z;
+
+                        D3DXVec3Project(&quadPos, &projectSrc, &g_Supervisor.viewport, &g_Supervisor.projectionMatrix, &g_Supervisor.viewMatrix, &worldMatrix);
+
+                        viewDir.x = g_Supervisor.viewMatrix.m[0][0];
+                        viewDir.y = g_Supervisor.viewMatrix.m[0][1];
+                        viewDir.z = g_Supervisor.viewMatrix.m[0][2];
+                        D3DXVec3Normalize(&viewDir, &viewDir);
+
+                        if (curQuad->size.x != 0.0f)
+                        {
+                            var_98 = curQuad->size.x;
+                        }
+                        else
+                        {
+                            var_98 = curQuadVm->sprite->widthPx;
+                        }
+
+                        worldMatrix.m[3][0] += viewDir.x * var_98 * curQuadVm->scale.x;
+                        worldMatrix.m[3][1] += viewDir.y * var_98 * curQuadVm->scale.x;
+                        worldMatrix.m[3][2] += viewDir.z * var_98 * curQuadVm->scale.x;
+
+                        D3DXVec3Project(&viewDir, &projectSrc, &g_Supervisor.viewport, &g_Supervisor.projectionMatrix, &g_Supervisor.viewMatrix, &worldMatrix);
+
+                        diffPos = viewDir - quadPos;
+
+                        curQuadVm->scale.x = D3DXVec3Length(&diffPos) / var_98;
+                        curQuadVm->scale.y = curQuadVm->scale.x;
+
+                        diffPos = *(D3DXVECTOR3 *)&curQuadVm->pos - this->cam.pos;
+
+                        var_98 = D3DXVec3Length(&diffPos);
+                        origColor = curQuadVm->color;
+
+                        if (this->skyFog.nearPlane < var_98)
+                        {
+                            var_98 = (this->skyFog.nearPlane - var_98) / (this->skyFog.nearPlane - this->skyFog.farPlane);
+                            if (var_98 >= 1.0f)
+                            {
+                                goto skip_draw;
+                            }
+
+                            curQuadVm->color.bytes.b = curQuadVm->color.bytes.b - (u8)((curQuadVm->color.bytes.b - this->skyFog.color.bytes.b) * var_98);
+                            curQuadVm->color.bytes.g = curQuadVm->color.bytes.g - (u8)((curQuadVm->color.bytes.g - this->skyFog.color.bytes.g) * var_98);
+                            curQuadVm->color.bytes.r = curQuadVm->color.bytes.r - (u8)((curQuadVm->color.bytes.r - this->skyFog.color.bytes.r) * var_98);
+                            curQuadVm->color.bytes.a = (u8)(curQuadVm->color.bytes.a * (1.0f - var_98));
+                        }
+
+                        curQuadVm->pos = *(Float3 *)&quadPos;
+
+                        if (curQuadVm->pos.z < 0.0f || curQuadVm->pos.z > 1.0f)
+                        {
+                            // empty branch
+                        }
+                        else
+                        {
+                            if (fogState != 0)
+                            {
+                                if (!g_Supervisor.cfg.disableFog)
+                                {
+                                    g_Supervisor.DisableFog();
+                                }
+                                fogState = 0;
+                            }
+                            g_AnmManager->DrawFacingCamera(curQuadVm);
+                        }
+                        curQuadVm->color = origColor;
+                    }
+                    else
+                    {
+                        if (!g_Supervisor.cfg.disableFog && fogState != 1)
+                        {
+                            if (!g_Supervisor.cfg.disableFog)
+                            {
+                                g_Supervisor.EnableFog();
+                            }
+                            fogState = 1;
+                        }
+                        g_AnmManager->Draw3(curQuadVm);
+                    }
+                    break;
                 }
+            skip_draw:
+                curQuad = (StdRawQuadBasic *)((u8 *)curQuad + curQuad->byteSize);
             }
+            instancesDrawn++;
         }
+    skip_instance:
         instance++;
     }
     return 0;
@@ -1129,9 +1125,9 @@ i32 Stage::RenderObjects(i32 zLevel)
 // FUNCTION: TH07 0x00408180
 void Stage::SetupCameraStageBackground()
 {
-    Float3 eyeVec;
-    Float3 atVec;
-    Float3 upVec;
+    D3DXVECTOR3 eyeVec;
+    D3DXVECTOR3 atVec;
+    D3DXVECTOR3 upVec;
     f32 fov;
     f32 aspectRatio;
     f32 centerX;
@@ -1156,7 +1152,7 @@ void Stage::SetupCameraStageBackground()
     eyeVec.y = centerY;
     eyeVec.z = eyeZ;
 
-    D3DXMatrixLookAtLH(&g_Supervisor.viewMatrix, eyeVec.asD3DX(), atVec.asD3DX(), upVec.asD3DX());
+    D3DXMatrixLookAtLH(&g_Supervisor.viewMatrix, &eyeVec, &atVec, &upVec);
     D3DXMatrixPerspectiveFovLH(
         &g_Supervisor.projectionMatrix, fov,
         aspectRatio,
@@ -1169,8 +1165,8 @@ void Stage::SetupCameraStageBackground()
 // FUNCTION: TH07 0x004082b0
 void Stage::UpdateCamera()
 {
-    D3DXMatrixLookAtLH(&g_Supervisor.viewMatrix, this->cam.pos.asD3DX(),
-                       (this->cam.lookAt + this->cam.pos).asD3DX(), this->cam.up.asD3DX());
+    D3DXMatrixLookAtLH(&g_Supervisor.viewMatrix, &this->cam.pos,
+                       &(this->cam.lookAt + this->cam.pos), &this->cam.up);
     D3DXMatrixPerspectiveFovLH(&g_Supervisor.projectionMatrix, this->cam.fov,
                                (f32)g_Supervisor.viewport.Width /
                                    (f32)g_Supervisor.viewport.Height,
@@ -1178,6 +1174,6 @@ void Stage::UpdateCamera()
     g_Supervisor.d3dDevice->SetTransform(D3DTS_VIEW, &g_Supervisor.viewMatrix);
     g_Supervisor.d3dDevice->SetTransform(D3DTS_PROJECTION,
                                          &g_Supervisor.projectionMatrix);
-    D3DXVec3Cross(this->cam.right.asD3DX(), this->cam.lookAt.asD3DX(), this->cam.up.asD3DX());
-    D3DXVec3Normalize(this->cam.right.asD3DX(), this->cam.right.asD3DX());
+    D3DXVec3Cross(&this->cam.right, &this->cam.lookAt, &this->cam.up);
+    D3DXVec3Normalize(&this->cam.right, &this->cam.right);
 }

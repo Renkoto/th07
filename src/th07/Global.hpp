@@ -369,7 +369,7 @@ struct Float3
         this->z = z;
     }
 
-    // FUNCTION: TH07 0x004325c0
+    // FUNCTION: TH07 0x004325c0 FOLDED
     void FromAngleMagnitude(f32 angle, f32 magnitude)
     {
         /* this->x = cosf(angle) * magnitude;
@@ -453,19 +453,6 @@ struct Float3
             z * inv);
     }
 
-    friend Float3 operator*(f32 s, const Float3 &v)
-    {
-        return Float3(
-            s * v.x,
-            s * v.y,
-            s * v.z);
-    }
-
-    D3DXVECTOR3 *asD3DX()
-    {
-        return (D3DXVECTOR3 *)this;
-    }
-
     f32 x;
     f32 y;
     f32 z;
@@ -476,6 +463,7 @@ struct Float2
     f32 x;
     f32 y;
 
+    // FUNCTION: TH07 0x004325c0 FOLDED
     void FromAngleMagnitude(f32 angle, f32 magnitude)
     {
         /* this->x = cosf(angle) * magnitude;

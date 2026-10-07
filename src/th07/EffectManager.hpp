@@ -10,11 +10,11 @@ struct Effect
     AnmVm vm;
     Float3 pos;
     Float3 custom;
-    Float3 velocity;
-    Float3 accel;
-    Float3 basePos;
+    D3DXVECTOR3 velocity;
+    D3DXVECTOR3 accel;
+    D3DXVECTOR3 basePos;
     Float3 emitterPos;
-    Float3 direction;
+    D3DXVECTOR3 direction;
     D3DXQUATERNION rotationQuat;
     f32 radius;
     f32 angleVel;
@@ -76,7 +76,7 @@ struct EffectManager
     static i32 InitWeatherSlow(Effect *effect);
     static i32 InitWeatherFalling(Effect *effect);
 
-    static void ShiftEffectsAfterCameraTeleport(Float3 *shift);
+    static void ShiftEffectsAfterCameraTeleport(D3DXVECTOR3 *shift);
     static void ModifyEffect1eAcceleration();
     static i32 UpdateNoOp(Effect *effect);
 
